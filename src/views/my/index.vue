@@ -1,214 +1,230 @@
 <template>
-  <div class="my-container">
-    <!-- 已登录 -->
-    <div v-if="user" class="header user-info">
-      <div class="base-info">
-        <div class="left">
-          <van-image class="avatar" round fit="cover" :src="userInfo.photo">
-          </van-image>
-          <span class="name">{{ userInfo.name }}</span>
-        </div>
-        <div class="right">
-          <van-button size="mini" round>编辑资料</van-button>
+  <div class="my">
+    <!-- 头部 -->
+    <header>
+      <!-- 登录的盒子 -->
+      <div v-if="isLogin" class="user-info banner">
+        <!-- 占位 -->
+        <van-row></van-row>
+        <!-- 展示用户信息 -->
+        <van-row class="row-2">
+          <van-col span="12">
+            <van-row type="flex" align="center" justify="space-around">
+              <!-- 头像 -->
+              <van-image
+                round
+                width="1.76rem"
+                height="1.76rem"
+                :src="userinfo.photo"
+              />
+              <!-- 手机号 -->
+              <span class="mobile">{{ userinfo.name }}</span>
+            </van-row>
+          </van-col>
+          <van-col span="11">
+            <van-row class="code-row" type="flex" align="center" justify="end">
+              <van-button class="code-btn" size="mini" round
+                >编辑资料</van-button
+              >
+            </van-row>
+          </van-col>
+        </van-row>
+        <van-row>
+          <van-grid class="grid" :border="false">
+            <van-grid-item text="头条">
+              <template #icon>{{ userinfo.art_count }}</template>
+            </van-grid-item>
+            <van-grid-item text="粉丝">
+              <template #icon>{{ userinfo.fans_count }}</template>
+            </van-grid-item>
+            <van-grid-item text="关注">
+              <template #icon>{{ userinfo.follow_count }}</template>
+            </van-grid-item>
+            <van-grid-item text="获赞">
+              <template #icon>{{ userinfo.like_count }}</template>
+            </van-grid-item>
+          </van-grid>
+        </van-row>
+      </div>
+      <!-- /登录的盒子 -->
+      <!-- 未登录 -->
+      <div v-else class="login-register banner">
+        <div class="wrap" @click="goLogin">
+          <img src="../../assets/mobile.png" alt="" />
+          <span>登录 / 注册</span>
         </div>
       </div>
-      <div class="data-status">
-        <div class="data-item">
-          <span class="count">{{ userInfo.art_count }}</span>
-          <span class="text">头条</span>
-        </div>
-        <div class="data-item">
-          <span class="count">{{ userInfo.follow_count }}</span>
-          <span class="text">关注</span>
-        </div>
-        <div class="data-item">
-          <span class="count">{{ userInfo.fans_count }}</span>
-          <span class="text">粉丝</span>
-        </div>
-        <div class="data-item">
-          <span class="count">{{ userInfo.like_count }}</span>
-          <span class="text">获赞</span>
-        </div>
+      <!-- /未登录 -->
+    </header>
+    <!-- 主体 -->
+    <main>
+      <div>
+        <van-grid column-num="2" class="grid" clickable>
+          <van-grid-item icon="photo" text="收藏">
+            <template #icon>
+              <span class="toutiao toutiao-shoucang"></span>
+            </template>
+          </van-grid-item>
+          <van-grid-item icon="photo" text="历史">
+            <template #icon>
+              <span class="toutiao toutiao-lishi"></span>
+            </template>
+          </van-grid-item>
+        </van-grid>
       </div>
-    </div>
-
-    <!-- 未登录 -->
-    <div v-else class="header not-login">
-      <div class="login-btn" @click="$router.push('/login')">
-        <img src="~@/assets/mobile.png" alt="" class="mobile-img" />
-        <span class="text">登录 / 注册</span>
+      <!-- 历史/搜索 -->
+      <div class="link">
+        <van-cell title="消息通知" is-link></van-cell>
+        <van-cell title="小智同学" is-link></van-cell>
       </div>
-    </div>
-
-    <van-grid class="grid-nav" :column-num="2" clickable>
-      <van-grid-item class="grid-item">
-        <i slot="icon" class="iconfont icon-shoucang"></i>
-        <span slot="text" class="text">收藏</span>
-      </van-grid-item>
-      <van-grid-item class="grid-item">
-        <i slot="icon" class="iconfont icon-lishi"></i>
-        <span slot="text" class="text">历史</span>
-      </van-grid-item>
-    </van-grid>
-
-    <van-cell title="消息通知" is-link></van-cell>
-    <van-cell class="mb-9" title="小智同学" is-link></van-cell>
-    <van-cell
-      v-if="user"
-      class="logout-cell"
-      title="退出登录"
-      @click="onLogout"
-      clickable
-    ></van-cell>
+    </main>
+    <!-- 底部退出按钮 -->
+    <van-button v-if="isLogin" block class="login-btn" @click="logout"
+      >退出</van-button
+    >
   </div>
 </template>
 
 <script>
-import { mapState } from "vuex"
-import { getUserInfo } from "@/api/user"
+import { getUserInfo } from "@/api/user.js";
 export default {
-  name: "MyIndex",
-
+  name: "Myindex",
   data() {
     return {
-      userInfo: {},
+      userinfo: {}
+    };
+  },
+  created() {
+    this.getUserInfo();
+  },
+  computed: {
+    isLogin() {
+      return !!this.$store.state.user.token;
     }
   },
-
-  computed: {
-    ...mapState(["user"]),
-  },
   methods: {
-    onLogout() {
+    logout() {
       this.$dialog
         .confirm({
-          title: "确认退出？",
+          title: "黑马头条",
+          message: "是否确认退出该账号？"
         })
         .then(() => {
-          // onconfirm
-          this.$store.commit("setUser", null)
+          // on confirm
+          this.$store.commit("setUser", {});
         })
         .catch(() => {
           // on cancel
-        })
+        });
     },
-    async loadUserInfo() {
-      try {
-        const { data } = await getUserInfo()
-        this.userInfo = data.data
-      } catch (err) {
-        this.$toast("获取数据失败，请稍后重试")
+    goLogin() {
+      this.$router.push("/login");
+    },
+    async getUserInfo() {
+      if (this.isLogin) {
+        try {
+          const {
+            data: { data }
+          } = await getUserInfo();
+          this.userinfo = data;
+        } catch (error) {
+          this.$toast.fail("请重新登录");
+        }
       }
-    },
-  },
-  created() {
-    if (this.user) {
-      this.loadUserInfo()
     }
-  },
-}
+  }
+};
 </script>
 
-<style scoped lang="less">
-.my-container {
-  .header {
-    height: 361px;
-    background: url("~@/assets/banner.png");
-    background-size: cover;
+<style lang="less" scoped>
+.my {
+  background-color: #f5f7f9;
+  height: calc(100vn - 100px);
+}
+
+// 背景图
+.banner {
+  width: 100%;
+  height: 400px;
+  background: url("../../assets/banner.png") no-repeat 0 0 / cover;
+}
+// 用户信息样式
+.user-info {
+  display: flex;
+  flex-direction: column;
+
+  > .van-row {
+    flex: 1;
   }
-  .not-login {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    .login-btn {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      .mobile-img {
-        width: 132px;
-        height: 132px;
-        margin-bottom: 15px;
+  .row-2 {
+    .van-col {
+      height: 100%;
+    }
+  }
+  .mobile {
+    font-size: 0.4rem;
+    color: #fff;
+  }
+  .code-btn {
+    width: 1.53333rem;
+    height: 0.42667rem;
+    background: #fff;
+    border-radius: 0.21333rem;
+    font-size: 0.26667rem;
+    color: #666;
+    padding: 0;
+  }
+
+  .code-row {
+    height: 100%;
+  }
+  .grid {
+    :deep(.van-grid-item__content) {
+      background-color: unset;
+    }
+  }
+  .van-grid-item {
+    color: #fff;
+    :deep(.van-grid-item__text) {
+      color: #fff;
+    }
+  }
+}
+// 主体区域
+main {
+  .grid {
+    color: #646566;
+    // 字体图标
+    .toutiao {
+      font-size: 0.6rem;
+
+      &.toutiao-lishi {
+        color: #ffb31d;
       }
-      .text {
-        font-size: 28px;
-        color: #fff;
+      &.toutiao-shoucang {
+        color: #ed5253;
       }
     }
   }
-
-  .user-info {
-    .base-info {
-      height: 231px;
-      padding: 76px 32px 22px;
-      box-sizing: border-box;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      .left {
-        display: flex;
-        align-items: center;
-        .avatar {
-          width: 132px;
-          height: 132px;
-          margin-right: 23px;
-          border: 4px solid #fff;
-        }
-        .name {
-          font-size: 30px;
-          color: #fff;
-        }
-      }
-    }
-    .data-status {
-      // height: 130px;
-      display: flex;
-
-      .data-item {
-        flex: 1;
-        height: 130px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        color: #fff;
-        .count {
-          font-size: 36px;
-        }
-        .text {
-          font-size: 23px;
-        }
-      }
-    }
-  }
-
-  .grid-nav {
-    .grid-item {
-      height: 141px;
-
-      i.iconfont {
-        font-size: 45px;
-      }
-      .icon-shoucang {
-        color: #eb5253;
-      }
-      .icon-lishi {
-        color: #ff9d1d;
-      }
-      span.text {
-        font-size: 24px;
-      }
-    }
-  }
-  .van-cell {
-    margin-top: 10px;
-  }
-  .mb-9 {
-    margin-top: 0;
-  }
-  .logout-cell {
+}
+.login-btn {
+  :deep(.van-button__text) {
     color: red;
-    text-align: center;
+  }
+}
+.login-register {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+  }
+  .img {
+    margin-bottom: 10px;
   }
 }
 </style>

@@ -18,6 +18,7 @@
         <ArticleItem
           v-for="item in articles"
           :key="item.art_id"
+          :articleId="item.art_id"
           :articleInfo="item"
         ></ArticleItem>
       </van-list>

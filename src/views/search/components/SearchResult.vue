@@ -3,43 +3,66 @@
     <van-list
       v-model="loading"
       :finished="finished"
+      :error.sync="error"
+      error-text="请求失败，点击重新加载"
       finished-text="没有更多了"
       @load="onLoad"
     >
-      <van-cell v-for="item in list" :key="item" :title="item" />
+      <van-cell
+        v-for="(item, index) in list"
+        :key="index"
+        :title="item.title"
+      />
     </van-list>
   </div>
 </template>
 
 <script>
+import { getSearchResult } from "@/api/search";
 export default {
-  data () {
+  data() {
     return {
       list: [],
       loading: false,
-      finished: false
+      finished: false,
+      page: 1,
+      perPage: 20,
+      error: false
+    };
+  },
+  props: {
+    keywords: {
+      type: String,
+      required: true
     }
   },
   methods: {
-    onLoad () {
-      setTimeout(() => {
-      // 异步更新数据  用setTimeout测试一下
-        for (let i = 0; i < 10; i++) {
-          this.list.push(this.list.length + 1)
+    async onLoad() {
+      try {
+        const { data } = await getSearchResult({
+          page: this.page,
+          per_page: this.perPage,
+          q: this.keywords
+        });
+        // console.log(data.data);
+        const { results } = data.data;
+        this.list.push(...results);
+        this.loading = false;
+        if (results.length) {
+          this.page++;
+        } else {
+          this.finished = true;
         }
-        // 加载状态结束
-        this.loading = false
-
-        // 数据全部加载完成
-        if (this.list.length <= 40) {
-          this.loading = false
-        }
-      }, 1000)
+      } catch (error) {
+        this.error = true;
+        this.loading = false;
+      }
     }
+  },
+  created() {
+    this.onLoad();
   }
-}
+};
 </script>
 
-<style lang="less" scoped>
-
-</style>
+<style lang="less" scoped></style>

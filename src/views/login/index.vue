@@ -90,9 +90,15 @@ export default {
       // 3. 提交表单请求登录
       try {
         const res = await login(user);
+
         this.$store.commit("setUser", res.data.data);
+        // localStorage.setItem(
+        //   "HEIMA_TOUTIAO_TOKEN",
+        //   JSON.stringify(res.data.data)
+        // );
+        console.log(res.data.data);
         this.$toast.success("登录成功");
-        this.$router.push("/profile");
+        this.$router.push("/my");
         // console.log('登录成功', res)
       } catch (err) {
         this.$toast.fail("登录失败");
@@ -103,17 +109,6 @@ export default {
         //   console.log('登录失败，请稍后重试', err)
         // }
         const status = err.response.status;
-        // switch (status) {
-        //   case 400:
-        //     this.$toast.fail(err.response.data.message)
-        //     break
-        //   case 507:
-        //     this.$toast.fail('登录错误，请刷新~')
-        //     break
-        //   default:
-        //     this.$toast.fail('登录错误，请刷新~')
-        //     break
-        // }
         // 优化
         let message = "登录错误，请刷新~";
         if (status === 400) {
