@@ -22,7 +22,9 @@ export default {
     }
   },
   data() {
-    return { loading: false };
+    return {
+      loading: false
+    };
   },
 
   methods: {

@@ -35,29 +35,7 @@
           <div slot="label" class="publish-date">
             {{ article.pubdate }}
           </div>
-          <!-- <van-button
-            class="follow-btn"
-            type="info"
-            color="#3296fa"
-            round
-            size="small"
-            icon="plus"
-            v-if="article.is_followed"
-            loading:followLoading
-            >关注</van-button
-          >
-          <van-button
-            class="follow-btn"
-            round
-            size="small"
-            v-else
-            loading:followLoading
-            >已关注</van-button
-          > -->
-          <follow-user
-            v-model="article.is_followed"
-            :user_id="article.aut_id"
-          />
+          <follow-user v-model="article.isFollowed" :user_id="article.aut_id" />
         </van-cell>
         <!-- @update-follow="article.is_followed = $event"
         :is_followed="article.is_followed" -->
@@ -68,6 +46,7 @@
         <div
           class="article-content markdown-body"
           v-html="article.content"
+          ref="article-content"
         ></div>
         <van-divider>正文结束</van-divider>
         <!-- 底部区域 -->
@@ -113,7 +92,7 @@
 
 <script>
 import { getArticleById, getArticleInfo } from "@/api/article";
-// import { ImagePreview } from "vant";
+import { ImagePreview } from "vant";
 // import { addFollow, deleteFollow } from "@/api/user";
 import FollowUser from "./component/FollowUser.vue";
 import CollectArticle from "./component/CollectArticle.vue";
@@ -141,25 +120,27 @@ export default {
   computed: {},
   watch: {},
   created() {
+    this.loadArticle();
     this.loadArticleInfo();
+    // this.previewImg();
   },
   mounted() {},
   methods: {
-    // previewImg() {
-    //   const contentEl = this.$refs.contentRef;
-    //   const allImg = contentEl.querySelectorAll("img");
-    //   console.log(allImg);
-    //   const images = [];
-    //   allImg.forEach((element, index) => {
-    //     images.push(element.src);
-    //     element.onclick = () => {
-    //       ImagePreview({
-    //         images,
-    //         startPosition: index
-    //       });
-    //     };
-    //   });
-    // },
+    previewImg() {
+      const contentEl = this.$refs["article-content"];
+      const allImg = contentEl.querySelectorAll("img");
+      // console.log(allImg);
+      const images = [];
+      allImg.forEach((element, index) => {
+        images.push(element.src);
+        element.onclick = () => {
+          ImagePreview({
+            images,
+            startPosition: index
+          });
+        };
+      });
+    },
     async loadArticleInfo() {
       this.isLoading = true;
       try {
@@ -167,9 +148,9 @@ export default {
         // thorw Error()
         const { data } = await getArticleInfo(this.articleId);
         this.article = data.data;
-        // setTimeout(() => {
-        //   this.previewImg();
-        // }, 10);
+        setTimeout(() => {
+          this.previewImg();
+        }, 10);
       } catch (err) {
         // 加载失败 404
         if (err.response && err.response.status === 404) {
@@ -189,37 +170,12 @@ export default {
         console.log(err);
       }
     }
-    // async onFollow() {
-    //   this.followLoading = true;
-    //   // 开启按钮的 loading 状态
-    //   this.isFollowLoading = true;
-
-    //   try {
-    //     // 如果已关注，则取消关注
-    //     const authorId = this.article.aut_id;
-    //     if (this.article.is_followed) {
-    //       await deleteFollow(authorId);
-    //     } else {
-    //       // 否则添加关注
-    //       await addFollow(authorId);
-    //     }
-
-    //     // 更新视图
-    //     this.article.is_followed = !this.article.is_followed;
-    //   } catch (err) {
-    //     console.log(err);
-    //     this.$toast.fail("操作失败");
-    //   }
-
-    //   // 关闭按钮的 loading 状态
-    //   this.isFollowLoading = false;
-    //   this.followLoading = false;
-    // }
   }
 };
 </script>
 
 <style scoped lang="less">
+@import "./github-markdown.css";
 .article-container {
   .main-wrap {
     position: fixed;
