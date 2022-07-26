@@ -1,5 +1,6 @@
 <template>
   <div class="user-profile">
+    <input type="file" hidden ref="file" @change="inputChange" />
     <!-- 导航栏 -->
     <van-nav-bar
       class="page-nav-bar"
@@ -8,7 +9,7 @@
       @click-left="$router.back()"
     />
     <!-- /导航栏 -->
-    <van-cell title="头像" is-link>
+    <van-cell title="头像" is-link @click="$refs.file.click()">
       <van-image class="avatar" fit="cover" round :src="user.photo" />
     </van-cell>
     <van-cell
@@ -65,6 +66,21 @@
     </van-popup>
 
     <!-- 编辑生日弹层 -->
+
+    <!-- 编辑头像弹层 -->
+    <van-popup
+      v-model="isUpdatePhotoShow"
+      style="height: 100%"
+      position="bottom"
+    >
+      <update-photo
+        v-if="isUpdatePhotoShow"
+        @update-photo="user.photo = $event"
+        @close="isUpdatePhotoShow = false"
+        :img="img"
+      />
+    </van-popup>
+    <!-- 编辑头像弹层 -->
   </div>
 </template>
 
@@ -73,6 +89,7 @@ import { getUserProfile } from "@/api/user";
 import updateName from "./components/update-name.vue";
 import updateGender from "./components/update-gender.vue";
 import updateBirthday from "./components/update-birthday.vue";
+import updatePhoto from "./components/update-photo.vue";
 export default {
   name: "userProfile",
   data() {
@@ -80,13 +97,15 @@ export default {
       user: {},
       isShowUpdateName: false,
       isShowUpdateGender: false,
-      isShowUpdateBirthday: false
+      isShowUpdateBirthday: false,
+      isUpdatePhotoShow: false
     };
   },
   components: {
     updateName,
     updateGender,
-    updateBirthday
+    updateBirthday,
+    updatePhoto
   },
 
   created() {
@@ -101,6 +120,14 @@ export default {
       } catch (err) {
         this.$toast("获取数据失败");
       }
+    },
+    inputChange() {
+      // 获取上传文件
+      const file = this.$refs.file.files[0];
+      this.img = window.URL.createObjectURL(file);
+      this.isUpdatePhotoShow = true;
+      // 同一张图片，change事件不会触发
+      this.$refs.file.value = "";
     }
   }
 };

@@ -71,3 +71,14 @@ export const updateUser = (data) => {
     data
   });
 };
+
+/**
+ * 更新头像
+ */
+export const updateUserPhoto = (data) => {
+  return request({
+    method: "PATCH",
+    url: "/v1_0/user/photo",
+    data
+  });
+};
