@@ -11,13 +11,13 @@
 
     <div class="main-wrap">
       <!-- 加载中 -->
-      <div class="loading-wrap" v-if="isLoading">
+      <div v-if="loading" class="loading-wrap">
         <van-loading color="#3296fa" vertical>加载中</van-loading>
       </div>
       <!-- /加载中 -->
 
       <!-- 加载完成-文章详情 -->
-      <div class="article-detail" v-else-if="article.title">
+      <div v-else-if="article.title" class="article-detail">
         <!-- 文章标题 -->
         <h1 class="article-title">{{ article.title }}</h1>
         <!-- /文章标题 -->
@@ -35,11 +35,12 @@
           <div slot="label" class="publish-date">
             {{ article.pubdate }}
           </div>
-          <follow-user v-model="article.isFollowed" :user_id="article.aut_id" />
+          <follow-user
+            class="follow-btn"
+            v-model="article.is_followed"
+            :user_id="article.aut_id"
+          />
         </van-cell>
-        <!-- @update-follow="article.is_followed = $event"
-        :is_followed="article.is_followed" -->
-
         <!-- /用户信息 -->
 
         <!-- 文章内容 -->
@@ -49,28 +50,54 @@
           ref="article-content"
         ></div>
         <van-divider>正文结束</van-divider>
+        <!-- 文章评论列表 -->
+        <CommentList
+          :source="article.art_id"
+          :list="commentList"
+          @onload-success="totalCommentCount = $event.total_count"
+          @reply-click="onReplyClick"
+        />
+        <!-- /文章评论列表 -->
         <!-- 底部区域 -->
         <div class="article-bottom">
-          <van-button class="comment-btn" type="default" round size="small"
+          <van-button
+            class="comment-btn"
+            type="default"
+            round
+            size="small"
+            @click="isPostShow = true"
             >写评论</van-button
           >
-          <van-icon name="comment-o" info="123" color="#777" />
-          <collect-article
-            :article-id="article.art_id"
-            v-model="article.is_collected"
+          <van-icon
+            class="comment-icon"
+            name="comment-o"
+            :badge="totalCommentCount"
+            color="#777"
           />
-
-          <likeArticle
+          <collect-article
+            class="btn-item"
+            v-model="article.is_collected"
+            :article-id="article.art_id"
+          />
+          <like-article
+            class="btn-item"
             v-model="article.attitude"
             :article-id="article.art_id"
           />
           <van-icon name="share" color="#777777"></van-icon>
         </div>
+        <!-- /底部区域 -->
+
+        <!-- 发布评论 -->
+        <van-popup v-model="isPostShow" position="bottom">
+          <CommentPost :target="article.art_id" @post-success="onPostSuccess" />
+        </van-popup>
+        <!-- 发布评论 -->
       </div>
       <!-- /加载完成-文章详情 -->
 
       <!-- 加载失败：404 -->
-      <div class="error-wrap" v-else-if="errStatus === 404">
+      <div v-else-if="errStatus === 404" class="error-wrap">
         <van-icon name="failure" />
         <p class="text">该资源不存在或已删除！</p>
       </div>
@@ -80,30 +107,48 @@
       <div v-else class="error-wrap">
         <van-icon name="failure" />
         <p class="text">内容加载失败！</p>
-        <van-button @click="loadArtcileInfo" class="retry-btn"
-          >点击重试</van-button
-        >
+        <van-button class="retry-btn" @click="loadArticle">点击重试</van-button>
       </div>
-
       <!-- /加载失败：其它未知错误（例如网络原因或服务端异常） -->
     </div>
+
+    <!-- 评论回复 -->
+    <van-popup v-model="isReplyShow" position="bottom" style="height: 95%">
+      <CommentReply
+        v-if="isReplyShow"
+        :comment="currentComment"
+        @close="isReplyShow = false"
+      />
+    </van-popup>
+    <!-- /评论回复 -->
   </div>
 </template>
 
 <script>
-import { getArticleById, getArticleInfo } from "@/api/article";
+import { getArticleById } from "@/api/article";
 import { ImagePreview } from "vant";
-// import { addFollow, deleteFollow } from "@/api/user";
 import FollowUser from "./component/FollowUser.vue";
 import CollectArticle from "./component/CollectArticle.vue";
-import likeArticle from "./component/likeArticle.vue";
+import LikeArticle from "./component/likeArticle.vue";
+import CommentList from "./component/CommentList.vue";
+import CommentPost from "./component/CommentPost.vue";
+import CommentReply from "./component/CommentReply.vue";
 
 export default {
-  name: "ArticlePage",
+  name: "ArticleIndex",
   components: {
     FollowUser,
     CollectArticle,
-    likeArticle
+    LikeArticle,
+    CommentList,
+    CommentPost,
+    CommentReply
+  },
+  // 给所有的后代组件提供数据
+  provide: function () {
+    return {
+      articleId: this.articleId
+    };
   },
   props: {
     articleId: {
@@ -114,61 +159,76 @@ export default {
   data() {
     return {
       article: {}, // 文章详情
-      isLoading: false
+      loading: true, // 加载中的 loading 状态
+      errStatus: 0, // 失败的状态码
+      followLoading: false,
+      totalCommentCount: 0,
+      isPostShow: false, // 控制发布评论的显示状态
+      commentList: [], // 评论列表
+      isReplyShow: false,
+      currentComment: {} // 当前点击回复的评论项
     };
   },
-  computed: {},
-  watch: {},
   created() {
     this.loadArticle();
-    this.loadArticleInfo();
-    // this.previewImg();
   },
-  mounted() {},
   methods: {
-    previewImg() {
-      const contentEl = this.$refs["article-content"];
-      const allImg = contentEl.querySelectorAll("img");
-      // console.log(allImg);
+    async loadArticle() {
+      // 展示 loading 加载中
+      this.loading = true;
+      try {
+        const { data } = await getArticleById(this.articleId);
+
+        this.article = data.data;
+
+        // 初始化图片点击预览
+        setTimeout(() => {
+          this.previewImage();
+        }, 0);
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          this.errStatus = 404;
+        }
+      }
+
+      // 关闭 loading
+      this.loading = false;
+    },
+
+    previewImage() {
+      // 得到所有的 img 节点
+      const articleContent = this.$refs["article-content"];
+      const imgs = articleContent.querySelectorAll("img");
+
+      // 获取所有 img 地址
       const images = [];
-      allImg.forEach((element, index) => {
-        images.push(element.src);
-        element.onclick = () => {
+      imgs.forEach((img, index) => {
+        images.push(img.src);
+
+        // 注册点击事件，在处理函数中调用预览
+        img.onclick = () => {
           ImagePreview({
+            // 预览的图片地址数组
             images,
+            // 起始位置，从 0 开始
             startPosition: index
           });
         };
       });
     },
-    async loadArticleInfo() {
-      this.isLoading = true;
-      try {
-        // 随机错误
-        // thorw Error()
-        const { data } = await getArticleInfo(this.articleId);
-        this.article = data.data;
-        setTimeout(() => {
-          this.previewImg();
-        }, 10);
-      } catch (err) {
-        // 加载失败 404
-        if (err.response && err.response.status === 404) {
-          this.errStatus = 404;
-        }
-        this.$toast("获取失败");
-      }
-      // 加载完成
-      this.isLoading = false;
+
+    onPostSuccess(data) {
+      // 关闭弹出层
+      this.isPostShow = false;
+      // 将发布内容显示到列表顶部
+      this.commentList.unshift(data.new_obj);
     },
-    async loadArticle() {
-      try {
-        const { data } = await getArticleById(this.articleId);
-        this.article = data.data;
-        console.log(data);
-      } catch (err) {
-        console.log(err);
-      }
+
+    onReplyClick(comment) {
+      this.currentComment = comment;
+
+      // 显示评论回复弹出层
+      this.isReplyShow = true;
     }
   }
 };
@@ -176,8 +236,17 @@ export default {
 
 <style scoped lang="less">
 @import "./github-markdown.css";
+
 .article-container {
   .main-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: #fff;
+  }
+  .article-detail {
     position: fixed;
     left: 0;
     right: 0;
@@ -185,8 +254,6 @@ export default {
     bottom: 88px;
     overflow-y: scroll;
     background-color: #fff;
-  }
-  .article-detail {
     .article-title {
       font-size: 40px;
       padding: 50px 32px;
@@ -280,12 +347,29 @@ export default {
       line-height: 46px;
       color: #a7a7a7;
     }
-    .van-icon {
+    /deep/ .van-icon {
       font-size: 40px;
+    }
+    .comment-icon {
+      top: 2px;
+      color: #777;
       .van-info {
         font-size: 16px;
         background-color: #e22829;
       }
+    }
+    .btn-item {
+      border: none;
+      padding: 0;
+      height: 40px;
+      line-height: 40px;
+      color: #777777;
+    }
+    .collect-btn--collected {
+      color: #ffa500;
+    }
+    .like-btn--liked {
+      color: #e5645f;
     }
   }
 }
