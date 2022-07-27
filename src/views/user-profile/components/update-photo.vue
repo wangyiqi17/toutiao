@@ -28,13 +28,19 @@ export default {
     // 别忘了给当前的 img 增加ref 属性， 要不然获取不到
     const image = this.$refs.img;
     this.cropper = new Cropper(image, {
-      viewMode: 1, // 只能在裁剪的图片范围内移动
-      dragMode: "move", // 画布和图片都可以移动
-      aspectRatio: 1, // 裁剪区默认正方形
-      autoCropArea: 1, // 自动调整裁剪图片
-      cropBoxMovable: false, // 禁止裁剪区移动
-      cropBoxResizable: false, // 禁止裁剪区缩放
-      background: false // 关闭默认背景
+      viewMode: 1,
+      aspectRatio: 1 / 1, // 默认比例
+      preview: ".previewImg", // 预览视图
+      guides: true, // 裁剪框的虚线(九宫格)
+      autoCropArea: 0.5, // 0-1之间的数值，定义自动剪裁区域的大小，默认0.8
+      movable: false, // 是否允许移动图片
+      dragCrop: true, // 是否允许移除当前的剪裁框，并通过拖动来新建一个剪裁框区域
+      dragMode: "move", // 是否允许移动剪裁框
+      resizable: true, // 是否允许改变裁剪框的大小
+      zoomable: true, // 是否允许缩放图片大小
+      mouseWheelZoom: true, // 是否允许通过鼠标滚轮来缩放图片
+      touchDragZoom: true, // 是否允许通过触摸移动来缩放图片
+      rotatable: true // 是否允许旋转图片
     });
     console.log(this.cropper);
   },
